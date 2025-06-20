@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Road to Serfdom — Calculadora Fiscal</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; }
+  h1 { color: #b22222; }
+  label { display: block; margin: 1rem 0 0.5rem; }
+  input { width: 100%; padding: 0.5rem; font-size: 1rem; }
+  button { margin-top: 1rem; padding: 0.7rem 1.5rem; font-size: 1rem; background: #b22222; color: white; border: none; cursor: pointer; }
+  .result { margin-top: 2rem; font-weight: bold; }
+  .bar { height: 30px; background: #b22222; transition: width 0.5s ease; }
+</style>
+</head>
+<body>
+
+<h1>The Road to Serfdom</h1>
+<p>Calculadora para estimar tu <strong>Serfdom Index</strong> y visualizar tu <em>Path to Freedom</em>.</p>
+
+<form id="calcForm">
+  <label for="income">Ingresos mensuales (€):</label>
+  <input type="number" id="income" name="income" min="0" required />
+
+  <label for="taxRate">Porcentaje estimado de impuestos totales (%):</label>
+  <input type="number" id="taxRate" name="taxRate" min="0" max="100" required />
+
+  <button type="submit">Calcular</button>
+</form>
+
+<div class="result" id="result" style="display:none;">
+  <p>Impuestos estimados: <span id="taxAmount"></span> €</p>
+  <p><strong>Serfdom Index:</strong> <span id="serfdomIndex"></span> %</p>
+  <p><strong>Path to Freedom:</strong></p>
+  <div style="background: #eee; width: 100%; border-radius: 5px;">
+    <div class="bar" id="freedomBar" style="width:0;"></div>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('calcForm');
+  const resultDiv = document.getElementById('result');
+  const taxAmountSpan = document.getElementById('taxAmount');
+  const serfdomIndexSpan = document.getElementById('serfdomIndex');
+  const freedomBar = document.getElementById('freedomBar');
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const income = parseFloat(form.income.value);
+    const taxRate = parseFloat(form.taxRate.value);
+
+    if (income <= 0 || taxRate < 0 || taxRate > 100) {
+      alert('Por favor, introduce valores válidos.');
+      return;
+    }
+
+    const taxAmount = (income * taxRate) / 100;
+    const serfdomIndex = taxRate; // Aquí el índice es el % de impuestos
+
+    taxAmountSpan.textContent = taxAmount.toFixed(2);
+    serfdomIndexSpan.textContent = serfdomIndex.toFixed(2);
+
+    // Path to Freedom: más impuestos, menos libertad
+    // La barra se llena desde 0% (0 ancho) hasta 100% (ancho completo)
+    // La barra muestra la servidumbre (serfdom), así que invertimos para "freedom"
+    const freedomPercent = 100 - serfdomIndex;
+    freedomBar.style.width = freedomPercent + '%';
+
+    resultDiv.style.display = 'block';
+  });
+</script>
+
+</body>
+</html>
