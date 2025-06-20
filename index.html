@@ -60,6 +60,7 @@
       background-color: #ddd;
       border-radius: 12px;
       overflow: hidden;
+      position: relative;
     }
     .relleno-barra {
       height: 100%;
@@ -80,6 +81,25 @@
       font-style: italic;
       color: #555;
     }
+    .barra-etiq {
+      position: absolute;
+      top: 30px;
+      width: 120px;
+      font-weight: bold;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #555;
+      user-select: none;
+    }
+    .barra-etiq.left {
+      left: 0;
+    }
+    .barra-etiq.right {
+      right: 0;
+      justify-content: flex-end;
+    }
   </style>
 </head>
 <body>
@@ -87,20 +107,49 @@
   
   <form id="formLibertad">
     <label for="ingresos">Ingreso neto mensual (€):</label>
-    <input type="number" id="ingresos" name="ingresos" min="0" step="any" required />
+    <input type="number" id="ingresos" name="ingresos" min="0" step="any" />
 
     <label for="impuestoRenta">¿Pagas IRPF?</label>
-    <select id="impuestoRenta" name="impuestoRenta" required>
-      <option value="">Selecciona...</option>
+    <select id="impuestoRenta" name="impuestoRenta">
+      <option value="">No contestado</option>
       <option value="0">No</option>
       <option value="1">Sí</option>
     </select>
 
     <label for="vivienda">¿Vives en vivienda propia o alquilada?</label>
-    <select id="vivienda" name="vivienda" required>
-      <option value="">Selecciona...</option>
+    <select id="vivienda" name="vivienda">
+      <option value="">No contestado</option>
       <option value="propia">Propia</option>
       <option value="alquilada">Alquilada</option>
+    </select>
+
+    <!-- Preguntas adicionales opcionales para mejorar el índice -->
+    <label for="cargasFamiliares">¿Tienes cargas familiares?</label>
+    <select id="cargasFamiliares" name="cargasFamiliares">
+      <option value="">No contestado</option>
+      <option value="0">No</option>
+      <option value="1">Sí</option>
+    </select>
+
+    <label for="autonomo">¿Eres autónomo?</label>
+    <select id="autonomo" name="autonomo">
+      <option value="">No contestado</option>
+      <option value="0">No</option>
+      <option value="1">Sí</option>
+    </select>
+
+    <label for="deudas">¿Tienes deudas activas?</label>
+    <select id="deudas" name="deudas">
+      <option value="">No contestado</option>
+      <option value="0">No</option>
+      <option value="1">Sí</option>
+    </select>
+
+    <label for="ahorros">¿Tienes ahorros o inversiones?</label>
+    <select id="ahorros" name="ahorros">
+      <option value="">No contestado</option>
+      <option value="0">No</option>
+      <option value="1">Sí</option>
     </select>
 
     <button type="submit">Calcular índice</button>
@@ -112,23 +161,49 @@
     document.getElementById('formLibertad').addEventListener('submit', function(e) {
       e.preventDefault();
 
-      const ingresos = parseFloat(document.getElementById('ingresos').value);
+      // Obtener valores (parsear números y strings)
+      const ingresosRaw = document.getElementById('ingresos').value;
+      const ingresos = ingresosRaw ? parseFloat(ingresosRaw) : null;
+
       const impuestoRenta = document.getElementById('impuestoRenta').value;
       const vivienda = document.getElementById('vivienda').value;
+      const cargasFamiliares = document.getElementById('cargasFamiliares').value;
+      const autonomo = document.getElementById('autonomo').value;
+      const deudas = document.getElementById('deudas').value;
+      const ahorros = document.getElementById('ahorros').value;
 
-      if (isNaN(ingresos) || impuestoRenta === "" || vivienda === "") {
-        alert("Por favor, rellena todos los campos correctamente.");
-        return;
+      // Empezamos índice en 50 (neutral)
+      let indice = 50;
+
+      // IRPF: si paga, baja índice
+      if (impuestoRenta === "1") indice -= 25;
+      else if (impuestoRenta === "0") indice += 10;
+
+      // Vivienda: propia suma, alquilada resta
+      if (vivienda === "propia") indice += 15;
+      else if (vivienda === "alquilada") indice -= 20;
+
+      // Cargas familiares: penaliza un poco
+      if (cargasFamiliares === "1") indice -= 10;
+      else if (cargasFamiliares === "0") indice += 5;
+
+      // Autónomo: penaliza por cargas fiscales y laborales
+      if (autonomo === "1") indice -= 10;
+      else if (autonomo === "0") indice += 5;
+
+      // Deudas: resta bastante
+      if (deudas === "1") indice -= 15;
+      else if (deudas === "0") indice += 5;
+
+      // Ahorros: suma algo
+      if (ahorros === "1") indice += 10;
+      else if (ahorros === "0") indice -= 5;
+
+      // Ajuste por ingresos, escala lineal hasta +20 puntos por >4000€
+      if (ingresos !== null && !isNaN(ingresos)) {
+        let ajusteIngresos = Math.min(ingresos / 4000 * 20, 20);
+        indice += ajusteIngresos;
       }
-
-      // Calculo simple de índice de libertad fiscal (0 a 100)
-      // Penaliza pagar IRPF, vivienda alquilada y mejora con ingresos altos (pero tope)
-      let indice = 100;
-      if (impuestoRenta === "1") indice -= 50; // pagar IRPF resta mucho
-      if (vivienda === "alquilada") indice -= 30; // alquilar resta también
-      // Ajuste por ingresos, para que suba un poco con más ingresos pero max 20 pts
-      let ajusteIngresos = Math.min(ingresos / 2000 * 20, 20);
-      indice += ajusteIngresos;
 
       // Limitar índice entre 0 y 100
       indice = Math.min(Math.max(indice, 0), 100);
@@ -137,25 +212,38 @@
       const resultadoDiv = document.getElementById('resultado');
       resultadoDiv.className = "";
       resultadoDiv.textContent = "";
+      resultadoDiv.style.position = 'relative';
 
-      // Crear barra visual
+      // Crear barra visual con textos e iconos en extremos
       const barraContenedor = document.createElement('div');
       barraContenedor.className = 'barra-resultado';
+
       const barraRelleno = document.createElement('div');
       barraRelleno.className = 'relleno-barra';
 
       if (indice < 40) {
         resultadoDiv.classList.add('indice-bajo');
-        barraRelleno.style.width = indice + '%';
       } else if (indice < 80) {
         resultadoDiv.classList.add('indice-medio');
-        barraRelleno.style.width = indice + '%';
       } else {
         resultadoDiv.classList.add('indice-alto');
-        barraRelleno.style.width = indice + '%';
       }
+      barraRelleno.style.width = indice + '%';
 
       barraContenedor.appendChild(barraRelleno);
+
+      // Etiquetas en extremos con iconos Unicode
+      const etiqIzq = document.createElement('div');
+      etiqIzq.className = 'barra-etiq left';
+      etiqIzq.innerHTML = '🚫 Camino de Servidumbre';
+
+      const etiqDer = document.createElement('div');
+      etiqDer.className = 'barra-etiq right';
+      etiqDer.innerHTML = '🕊️ Libertad';
+
+      barraContenedor.appendChild(etiqIzq);
+      barraContenedor.appendChild(etiqDer);
+
       resultadoDiv.appendChild(barraContenedor);
 
       // Texto resultado + explicación
@@ -169,13 +257,37 @@
       explicacion.className = 'explicacion';
 
       if (indice >= 80) {
-        explicacion.textContent = "Tu situación fiscal es relativamente favorable: pagas pocos impuestos directos y tienes vivienda propia, lo que te otorga mayor libertad financiera.";
+        explicacion.textContent = "Tu situación fiscal es favorable: pagas pocos impuestos directos, tienes vivienda propia y controlas tus finanzas, lo que te otorga mayor libertad financiera.";
       } else if (indice >= 40) {
-        explicacion.textContent = "Tu situación fiscal tiene aspectos que podrían mejorar: quizá pagas IRPF o vives en alquiler, lo que reduce tu libertad financiera.";
+        explicacion.textContent = "Tu situación fiscal puede mejorar: algunas cargas fiscales o financieras te limitan, pero con cambios podrías avanzar hacia más libertad.";
       } else {
-        explicacion.textContent = "Tu situación fiscal es complicada: pagas impuestos directos y no tienes vivienda propia, lo que limita tu libertad financiera considerablemente.";
+        explicacion.textContent = "Tu situación fiscal es complicada: pagas impuestos directos, tienes cargas o deudas y quizá no tienes vivienda propia, lo que limita tu libertad financiera considerablemente.";
       }
       resultadoDiv.appendChild(explicacion);
+
+      // Recomendaciones básicas para nivel 1
+      const recomendaciones = document.createElement('div');
+      recomendaciones.style.marginTop = '20px';
+      recomendaciones.style.textAlign = 'left';
+      recomendaciones.style.background = '#eef6ff';
+      recomendaciones.style.padding = '15px';
+      recomendaciones.style.borderRadius = '6px';
+      recomendaciones.style.color = '#336699';
+
+      let textoRec = "<strong>Recomendaciones básicas:</strong><ul>";
+      if (indice < 40) {
+        textoRec += "<li>Revisa tu carga fiscal y busca asesoría para optimizar impuestos.</li>";
+        textoRec += "<li>Evalúa la posibilidad de reducir deudas y mejorar tu vivienda.</li>";
+      } else if (indice < 80) {
+        textoRec += "<li>Considera opciones para disminuir impuestos y aumentar ahorros.</li>";
+        textoRec += "<li>Valora invertir en vivienda propia si estás alquilando.</li>";
+      } else {
+        textoRec += "<li>Mantén tu situación fiscal y busca optimizar aún más tus finanzas.</li>";
+        textoRec += "<li>Explora inversiones que te ayuden a aumentar tu libertad financiera.</li>";
+      }
+      textoRec += "</ul>";
+      recomendaciones.innerHTML = textoRec;
+      resultadoDiv.appendChild(recomendaciones);
     });
   </script>
 </body>
