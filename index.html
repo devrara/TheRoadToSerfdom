@@ -104,4 +104,32 @@
     document.getElementById('formLibertad').addEventListener('submit', function(e) {
       e.preventDefault();
 
-      const ingresos = parse
+      const ingresos = parseFloat(document.getElementById('ingresos').value);
+  const impuestoRenta = document.getElementById('impuestoRenta').value;
+  const iva = document.getElementById('iva').value;
+  const vivienda = document.getElementById('vivienda').value;
+
+  if (isNaN(ingresos) || impuestoRenta === "" || iva === "" || vivienda === "") {
+    alert("Por favor, rellena todos los campos correctamente.");
+    return;
+  }
+
+  // Ejemplo de cálculo simple para el índice (ajustar según lógica)
+  let indice = 0;
+  if (impuestoRenta === "1") indice += 50;
+  if (iva === "1") indice += 30;
+  if (vivienda === "propia") indice += 20;
+  else indice += 10;
+
+  indice += ingresos / 1000; // escala con ingresos, solo como ejemplo
+
+  // Mostrar resultado con colores
+  const resultadoDiv = document.getElementById('resultado');
+  resultadoDiv.textContent = `Tu Índice de Libertad Fiscal es: ${indice.toFixed(2)}`;
+
+  resultadoDiv.className = "";
+  if (indice < 40) resultadoDiv.classList.add('indice-bajo');
+  else if (indice < 80) resultadoDiv.classList.add('indice-medio');
+  else resultadoDiv.classList.add('indice-alto');
+});
+</script>
