@@ -52,6 +52,7 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       font-size: 18px;
       text-align: center;
+      position: relative;
     }
     .barra-resultado {
       margin-top: 15px;
@@ -66,39 +67,35 @@
       height: 100%;
       border-radius: 12px;
       transition: width 0.5s ease;
+      background: linear-gradient(to right, #c0392b, #27ae60);
     }
-    .indice-bajo .relleno-barra {
-      background-color: #27ae60; /* verde */
+    /* Cambiamos colores fijos por degradado en relleno para que la barra pase del rojo (0%) al verde (100%) */
+
+    .barra-etiq {
+      position: absolute;
+      top: 35px;
+      width: 140px;
+      font-weight: bold;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #555;
+      user-select: none;
+      white-space: nowrap;
     }
-    .indice-medio .relleno-barra {
-      background-color: #f39c12; /* naranja */
+    .barra-etiq.left {
+      left: 0;
+      justify-content: flex-start;
     }
-    .indice-alto .relleno-barra {
-      background-color: #c0392b; /* rojo */
+    .barra-etiq.right {
+      right: 0;
+      justify-content: flex-end;
     }
     .explicacion {
       margin-top: 15px;
       font-style: italic;
       color: #555;
-    }
-    .barra-etiq {
-      position: absolute;
-      top: 30px;
-      width: 120px;
-      font-weight: bold;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      color: #555;
-      user-select: none;
-    }
-    .barra-etiq.left {
-      left: 0;
-    }
-    .barra-etiq.right {
-      right: 0;
-      justify-content: flex-end;
     }
   </style>
 </head>
@@ -123,7 +120,6 @@
       <option value="alquilada">Alquilada</option>
     </select>
 
-    <!-- Preguntas adicionales opcionales para mejorar el índice -->
     <label for="cargasFamiliares">¿Tienes cargas familiares?</label>
     <select id="cargasFamiliares" name="cargasFamiliares">
       <option value="">No contestado</option>
@@ -161,7 +157,6 @@
     document.getElementById('formLibertad').addEventListener('submit', function(e) {
       e.preventDefault();
 
-      // Obtener valores (parsear números y strings)
       const ingresosRaw = document.getElementById('ingresos').value;
       const ingresos = ingresosRaw ? parseFloat(ingresosRaw) : null;
 
@@ -172,70 +167,50 @@
       const deudas = document.getElementById('deudas').value;
       const ahorros = document.getElementById('ahorros').value;
 
-      // Empezamos índice en 50 (neutral)
       let indice = 50;
 
-      // IRPF: si paga, baja índice
       if (impuestoRenta === "1") indice -= 25;
       else if (impuestoRenta === "0") indice += 10;
 
-      // Vivienda: propia suma, alquilada resta
       if (vivienda === "propia") indice += 15;
       else if (vivienda === "alquilada") indice -= 20;
 
-      // Cargas familiares: penaliza un poco
       if (cargasFamiliares === "1") indice -= 10;
       else if (cargasFamiliares === "0") indice += 5;
 
-      // Autónomo: penaliza por cargas fiscales y laborales
       if (autonomo === "1") indice -= 10;
       else if (autonomo === "0") indice += 5;
 
-      // Deudas: resta bastante
       if (deudas === "1") indice -= 15;
       else if (deudas === "0") indice += 5;
 
-      // Ahorros: suma algo
       if (ahorros === "1") indice += 10;
       else if (ahorros === "0") indice -= 5;
 
-      // Ajuste por ingresos, escala lineal hasta +20 puntos por >4000€
       if (ingresos !== null && !isNaN(ingresos)) {
         let ajusteIngresos = Math.min(ingresos / 4000 * 20, 20);
         indice += ajusteIngresos;
       }
 
-      // Limitar índice entre 0 y 100
       indice = Math.min(Math.max(indice, 0), 100);
 
-      // Mostrar resultado
       const resultadoDiv = document.getElementById('resultado');
       resultadoDiv.className = "";
       resultadoDiv.textContent = "";
       resultadoDiv.style.position = 'relative';
 
-      // Crear barra visual con textos e iconos en extremos
       const barraContenedor = document.createElement('div');
       barraContenedor.className = 'barra-resultado';
 
       const barraRelleno = document.createElement('div');
       barraRelleno.className = 'relleno-barra';
-
-      if (indice < 40) {
-        resultadoDiv.classList.add('indice-bajo');
-      } else if (indice < 80) {
-        resultadoDiv.classList.add('indice-medio');
-      } else {
-        resultadoDiv.classList.add('indice-alto');
-      }
       barraRelleno.style.width = indice + '%';
 
       barraContenedor.appendChild(barraRelleno);
 
-      // Etiquetas en extremos con iconos Unicode
       const etiqIzq = document.createElement('div');
       etiqIzq.className = 'barra-etiq left';
-      etiqIzq.innerHTML = '🚫 Camino de Servidumbre';
+      etiqIzq.innerHTML = '⛓️ Camino de Servidumbre';
 
       const etiqDer = document.createElement('div');
       etiqDer.className = 'barra-etiq right';
@@ -246,7 +221,6 @@
 
       resultadoDiv.appendChild(barraContenedor);
 
-      // Texto resultado + explicación
       const textoResultado = document.createElement('p');
       textoResultado.textContent = `Tu Índice de Libertad Fiscal es: ${indice.toFixed(1)} / 100`;
       textoResultado.style.fontWeight = 'bold';
@@ -265,7 +239,6 @@
       }
       resultadoDiv.appendChild(explicacion);
 
-      // Recomendaciones básicas para nivel 1
       const recomendaciones = document.createElement('div');
       recomendaciones.style.marginTop = '20px';
       recomendaciones.style.textAlign = 'left';
