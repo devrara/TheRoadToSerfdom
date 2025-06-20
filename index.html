@@ -69,8 +69,6 @@
       transition: width 0.5s ease;
       background: linear-gradient(to right, #c0392b, #27ae60);
     }
-    /* Cambiamos colores fijos por degradado en relleno para que la barra pase del rojo (0%) al verde (100%) */
-
     .barra-etiq {
       position: absolute;
       top: 35px;
@@ -120,6 +118,16 @@
       <option value="alquilada">Alquilada</option>
     </select>
 
+    <label for="hipoteca">¿Tienes hipoteca?</label>
+    <select id="hipoteca" name="hipoteca">
+      <option value="">No contestado</option>
+      <option value="0">No</option>
+      <option value="1">Sí</option>
+    </select>
+
+    <label for="pagoHipoteca" id="labelPagoHipoteca" style="display:none;">¿Cuánto pagas mensualmente de hipoteca? (€)</label>
+    <input type="number" id="pagoHipoteca" name="pagoHipoteca" min="0" step="any" style="display:none;" />
+
     <label for="cargasFamiliares">¿Tienes cargas familiares?</label>
     <select id="cargasFamiliares" name="cargasFamiliares">
       <option value="">No contestado</option>
@@ -154,6 +162,40 @@
   <div id="resultado"></div>
 
   <script>
+    // Mostrar/ocultar campo pago hipoteca según respuesta
+    document.getElementById('hipoteca').addEventListener('change', function() {
+      const pagoHipotecaLabel = document.getElementById('labelPagoHipoteca');
+      const pagoHipotecaInput = document.getElementById('pagoHipoteca');
+      if (this.value === "1") {
+        pagoHipotecaLabel.style.display = 'block';
+        pagoHipotecaInput.style.display = 'block';
+      } else {
+        pagoHipotecaLabel.style.display = 'none';
+        pagoHipotecaInput.style.display = 'none';
+        pagoHipotecaInput.value = '';
+      }
+    });
+
+    // Función para estimar porcentaje IRPF según ingreso bruto estimado y cargas familiares
+    function estimarIRPF(bruto, cargasFamiliares) {
+      // Tablas simplificadas de tramos IRPF (valores anuales)
+      // Esta es solo una aproximación para fines del índice.
+      let tasa = 0;
+
+      if (bruto <= 12000) tasa = 0.09;
+      else if (bruto <= 20000) tasa = 0.15;
+      else if (bruto <= 35000) tasa = 0.22;
+      else if (bruto <= 60000) tasa = 0.30;
+      else tasa = 0.37;
+
+      // Descuento por cargas familiares, -3% si tiene cargas
+      if (cargasFamiliares === "1") {
+        tasa -= 0.03;
+        if (tasa < 0) tasa = 0;
+      }
+      return tasa;
+    }
+
     document.getElementById('formLibertad').addEventListener('submit', function(e) {
       e.preventDefault();
 
@@ -162,6 +204,10 @@
 
       const impuestoRenta = document.getElementById('impuestoRenta').value;
       const vivienda = document.getElementById('vivienda').value;
+      const hipoteca = document.getElementById('hipoteca').value;
+      const pagoHipotecaRaw = document.getElementById('pagoHipoteca').value;
+      const pagoHipoteca = pagoHipotecaRaw ? parseFloat(pagoHipotecaRaw) : 0;
+
       const cargasFamiliares = document.getElementById('cargasFamiliares').value;
       const autonomo = document.getElementById('autonomo').value;
       const deudas = document.getElementById('deudas').value;
@@ -169,29 +215,59 @@
 
       let indice = 50;
 
+      // Ajuste IRPF básico
       if (impuestoRenta === "1") indice -= 25;
       else if (impuestoRenta === "0") indice += 10;
 
+      // Ajuste vivienda propia o alquilada
       if (vivienda === "propia") indice += 15;
       else if (vivienda === "alquilada") indice -= 20;
 
+      // Ajuste cargas familiares
       if (cargasFamiliares === "1") indice -= 10;
       else if (cargasFamiliares === "0") indice += 5;
 
+      // Ajuste autónomo
       if (autonomo === "1") indice -= 10;
       else if (autonomo === "0") indice += 5;
 
+      // Ajuste deudas
       if (deudas === "1") indice -= 15;
       else if (deudas === "0") indice += 5;
 
+      // Ajuste ahorros
       if (ahorros === "1") indice += 10;
       else if (ahorros === "0") indice -= 5;
 
+      // Ajuste ingresos netos
       if (ingresos !== null && !isNaN(ingresos)) {
         let ajusteIngresos = Math.min(ingresos / 4000 * 20, 20);
         indice += ajusteIngresos;
       }
 
+      // Ajuste hipoteca (si tiene hipoteca y pago válido)
+      if (hipoteca === "1" && pagoHipoteca > 0 && ingresos > 0) {
+        const ratioHipoteca = pagoHipoteca / ingresos;
+        // Penalizamos si la hipoteca supera ciertos umbrales del neto mensual
+        if (ratioHipoteca > 0.5) indice -= 25;    // Mucho esfuerzo financiero
+        else if (ratioHipoteca > 0.3) indice -= 15; 
+        else if (ratioHipoteca > 0.15) indice -= 7;
+        else indice += 5; // Hipoteca baja, no penaliza, incluso favorece algo
+      }
+
+      // Estimación del IRPF y mostrarlo
+      let irpfEst = null;
+      if (ingresos !== null && !isNaN(ingresos) && cargasFamiliares !== "") {
+        // Estimamos bruto aproximado: neto/(1 - tasa aprox). Aquí usamos tasa aprox inicial de 20%
+        // Iteramos una vez para mejorar
+        let tasaAprox = 0.20;
+        let brutoEst = ingresos / (1 - tasaAprox);
+        let tasaCalculada = estimarIRPF(brutoEst * 12, cargasFamiliares);
+        brutoEst = ingresos / (1 - tasaCalculada);
+        irpfEst = tasaCalculada;
+      }
+
+      // Limitar índice entre 0 y 100
       indice = Math.min(Math.max(indice, 0), 100);
 
       const resultadoDiv = document.getElementById('resultado');
@@ -226,6 +302,16 @@
       textoResultado.style.fontWeight = 'bold';
       textoResultado.style.marginTop = '10px';
       resultadoDiv.appendChild(textoResultado);
+
+      // Mostrar estimación IRPF si se calculó
+      if (irpfEst !== null) {
+        const textoIRPF = document.createElement('p');
+        textoIRPF.style.marginTop = '10px';
+        textoIRPF.style.fontStyle = 'italic';
+        textoIRPF.style.color = '#555';
+        textoIRPF.textContent = `Estimación de IRPF anual aproximado: ${(irpfEst * 100).toFixed(1)}%`;
+        resultadoDiv.appendChild(textoIRPF);
+      }
 
       const explicacion = document.createElement('p');
       explicacion.className = 'explicacion';
