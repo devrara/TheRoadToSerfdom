@@ -53,17 +53,32 @@
       font-size: 18px;
       text-align: center;
     }
-    .indice-bajo {
-      color: green;
-      font-weight: bold;
+    .barra-resultado {
+      margin-top: 15px;
+      height: 25px;
+      width: 100%;
+      background-color: #ddd;
+      border-radius: 12px;
+      overflow: hidden;
     }
-    .indice-medio {
-      color: orange;
-      font-weight: bold;
+    .relleno-barra {
+      height: 100%;
+      border-radius: 12px;
+      transition: width 0.5s ease;
     }
-    .indice-alto {
-      color: red;
-      font-weight: bold;
+    .indice-bajo .relleno-barra {
+      background-color: #27ae60; /* verde */
+    }
+    .indice-medio .relleno-barra {
+      background-color: #f39c12; /* naranja */
+    }
+    .indice-alto .relleno-barra {
+      background-color: #c0392b; /* rojo */
+    }
+    .explicacion {
+      margin-top: 15px;
+      font-style: italic;
+      color: #555;
     }
   </style>
 </head>
@@ -76,13 +91,6 @@
 
     <label for="impuestoRenta">¿Pagas IRPF?</label>
     <select id="impuestoRenta" name="impuestoRenta" required>
-      <option value="">Selecciona...</option>
-      <option value="0">No</option>
-      <option value="1">Sí</option>
-    </select>
-
-    <label for="iva">¿Pagas IVA indirectamente?</label>
-    <select id="iva" name="iva" required>
       <option value="">Selecciona...</option>
       <option value="0">No</option>
       <option value="1">Sí</option>
@@ -105,31 +113,70 @@
       e.preventDefault();
 
       const ingresos = parseFloat(document.getElementById('ingresos').value);
-  const impuestoRenta = document.getElementById('impuestoRenta').value;
-  const iva = document.getElementById('iva').value;
-  const vivienda = document.getElementById('vivienda').value;
+      const impuestoRenta = document.getElementById('impuestoRenta').value;
+      const vivienda = document.getElementById('vivienda').value;
 
-  if (isNaN(ingresos) || impuestoRenta === "" || iva === "" || vivienda === "") {
-    alert("Por favor, rellena todos los campos correctamente.");
-    return;
-  }
+      if (isNaN(ingresos) || impuestoRenta === "" || vivienda === "") {
+        alert("Por favor, rellena todos los campos correctamente.");
+        return;
+      }
 
-  // Ejemplo de cálculo simple para el índice (ajustar según lógica)
-  let indice = 0;
-  if (impuestoRenta === "1") indice += 50;
-  if (iva === "1") indice += 30;
-  if (vivienda === "propia") indice += 20;
-  else indice += 10;
+      // Calculo simple de índice de libertad fiscal (0 a 100)
+      // Penaliza pagar IRPF, vivienda alquilada y mejora con ingresos altos (pero tope)
+      let indice = 100;
+      if (impuestoRenta === "1") indice -= 50; // pagar IRPF resta mucho
+      if (vivienda === "alquilada") indice -= 30; // alquilar resta también
+      // Ajuste por ingresos, para que suba un poco con más ingresos pero max 20 pts
+      let ajusteIngresos = Math.min(ingresos / 2000 * 20, 20);
+      indice += ajusteIngresos;
 
-  indice += ingresos / 1000; // escala con ingresos, solo como ejemplo
+      // Limitar índice entre 0 y 100
+      indice = Math.min(Math.max(indice, 0), 100);
 
-  // Mostrar resultado con colores
-  const resultadoDiv = document.getElementById('resultado');
-  resultadoDiv.textContent = `Tu Índice de Libertad Fiscal es: ${indice.toFixed(2)}`;
+      // Mostrar resultado
+      const resultadoDiv = document.getElementById('resultado');
+      resultadoDiv.className = "";
+      resultadoDiv.textContent = "";
 
-  resultadoDiv.className = "";
-  if (indice < 40) resultadoDiv.classList.add('indice-bajo');
-  else if (indice < 80) resultadoDiv.classList.add('indice-medio');
-  else resultadoDiv.classList.add('indice-alto');
-});
-</script>
+      // Crear barra visual
+      const barraContenedor = document.createElement('div');
+      barraContenedor.className = 'barra-resultado';
+      const barraRelleno = document.createElement('div');
+      barraRelleno.className = 'relleno-barra';
+
+      if (indice < 40) {
+        resultadoDiv.classList.add('indice-bajo');
+        barraRelleno.style.width = indice + '%';
+      } else if (indice < 80) {
+        resultadoDiv.classList.add('indice-medio');
+        barraRelleno.style.width = indice + '%';
+      } else {
+        resultadoDiv.classList.add('indice-alto');
+        barraRelleno.style.width = indice + '%';
+      }
+
+      barraContenedor.appendChild(barraRelleno);
+      resultadoDiv.appendChild(barraContenedor);
+
+      // Texto resultado + explicación
+      const textoResultado = document.createElement('p');
+      textoResultado.textContent = `Tu Índice de Libertad Fiscal es: ${indice.toFixed(1)} / 100`;
+      textoResultado.style.fontWeight = 'bold';
+      textoResultado.style.marginTop = '10px';
+      resultadoDiv.appendChild(textoResultado);
+
+      const explicacion = document.createElement('p');
+      explicacion.className = 'explicacion';
+
+      if (indice >= 80) {
+        explicacion.textContent = "Tu situación fiscal es relativamente favorable: pagas pocos impuestos directos y tienes vivienda propia, lo que te otorga mayor libertad financiera.";
+      } else if (indice >= 40) {
+        explicacion.textContent = "Tu situación fiscal tiene aspectos que podrían mejorar: quizá pagas IRPF o vives en alquiler, lo que reduce tu libertad financiera.";
+      } else {
+        explicacion.textContent = "Tu situación fiscal es complicada: pagas impuestos directos y no tienes vivienda propia, lo que limita tu libertad financiera considerablemente.";
+      }
+      resultadoDiv.appendChild(explicacion);
+    });
+  </script>
+</body>
+</html>
