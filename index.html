@@ -68,7 +68,13 @@
       height: 100%;
       border-radius: 12px;
       transition: width 0.5s ease;
-      background: linear-gradient(to right, #c0392b, #27ae60);
+      /* Color segmentado según % */
+      background: linear-gradient(
+        to right,
+        red 0%, red 40%,
+        orange 40%, orange 80%,
+        green 80%, green 100%
+      );
     }
     .barra-etiq {
       position: absolute;
@@ -95,6 +101,8 @@
       margin-top: 15px;
       font-style: italic;
       color: #555;
+      text-align: left;
+      white-space: normal;
     }
   </style>
 </head>
@@ -232,105 +240,171 @@
       else if (ahorros === "0") indice -= 5;
 
       if (ingresos !== null && !isNaN(ingresos)) {
-        let ajusteIngresos = Math.min(ingresos / 4000 * 20, 20);
-        indice += ajusteIngresos;
+        if (ingresos < 700) indice -= 10;
+        else if (ingresos > 2500) indice += 10;
       }
 
-      if (hipoteca === "1" && pagoHipoteca > 0 && ingresos > 0) {
-        const ratioHipoteca = pagoHipoteca / ingresos;
-        if (ratioHipoteca > 0.5) indice -= 25;
-        else if (ratioHipoteca > 0.3) indice -= 15;
-        else if (ratioHipoteca > 0.15) indice -= 7;
-        else indice += 5;
+      if (hipoteca === "1" && pagoHipoteca > 0 && ingresos !== null && ingresos > 0) {
+        const ratio = pagoHipoteca / ingresos;
+        if (ratio > 0.5) {
+          indice -= 15;
+        } else if (ratio > 0.3) {
+          indice -= 5;
+        } else {
+          indice += 5;
+        }
+      } else if (hipoteca === "0") {
+        indice += 10;
       }
 
-      // Estimación IRPF
-      let irpfEst = null;
-      if (ingresos !== null && !isNaN(ingresos) && cargasFamiliares !== "") {
-        let tasaAprox = 0.20;
-        let brutoEst = ingresos / (1 - tasaAprox);
-        let tasaCalculada = estimarIRPF(brutoEst * 12, cargasFamiliares);
-        brutoEst = ingresos / (1 - tasaCalculada);
-        irpfEst = tasaCalculada;
-      }
+      // Limitar índice entre 0 y 100
+      if (indice > 100) indice = 100;
+      if (indice < 0) indice = 0;
 
-      indice = Math.min(Math.max(indice, 0), 100);
-
+      // Mostrar resultado
       const resultadoDiv = document.getElementById('resultado');
-      resultadoDiv.className = "";
-      resultadoDiv.textContent = "";
-      resultadoDiv.style.position = 'relative';
+      resultadoDiv.innerHTML = '';
 
-      const barraContenedor = document.createElement('div');
-      barraContenedor.className = 'barra-resultado';
+      const pResultado = document.createElement('p');
+      pResultado.innerHTML = `<strong>Índice de Libertad Fiscal (Nivel 1): ${indice.toFixed(1)}%</strong>`;
+      resultadoDiv.appendChild(pResultado);
+
+      // Barra de progreso
+      const barraCont = document.createElement('div');
+      barraCont.className = 'barra-resultado';
 
       const barraRelleno = document.createElement('div');
       barraRelleno.className = 'relleno-barra';
       barraRelleno.style.width = indice + '%';
 
-      barraContenedor.appendChild(barraRelleno);
+      barraCont.appendChild(barraRelleno);
+      resultadoDiv.appendChild(barraCont);
 
-      const etiqIzq = document.createElement('div');
-      etiqIzq.className = 'barra-etiq left';
-      etiqIzq.innerHTML = '⛓️ Camino de Servidumbre';
+      // Etiquetas barra
+      const etiqBaja = document.createElement('div');
+      etiqBaja.className = 'barra-etiq left';
+      etiqBaja.textContent = 'Menos libertad fiscal';
+      resultadoDiv.appendChild(etiqBaja);
 
-      const etiqDer = document.createElement('div');
-      etiqDer.className = 'barra-etiq right';
-      etiqDer.innerHTML = '🕊️ Libertad';
+      const etiqAlta = document.createElement('div');
+      etiqAlta.className = 'barra-etiq right';
+      etiqAlta.textContent = 'Más libertad fiscal';
+      resultadoDiv.appendChild(etiqAlta);
 
-      barraContenedor.appendChild(etiqIzq);
-      barraContenedor.appendChild(etiqDer);
-
-      resultadoDiv.appendChild(barraContenedor);
-
-      const textoResultado = document.createElement('p');
-      textoResultado.textContent = `Tu Índice de Libertad Fiscal es: ${indice.toFixed(1)} / 100`;
-      textoResultado.style.fontWeight = 'bold';
-      textoResultado.style.marginTop = '10px';
-      resultadoDiv.appendChild(textoResultado);
-
-      if (irpfEst !== null) {
-        const textoIRPF = document.createElement('p');
-        textoIRPF.style.marginTop = '10px';
-        textoIRPF.style.fontStyle = 'italic';
-        textoIRPF.style.color = '#555';
-        textoIRPF.textContent = `Estimación de IRPF anual aproximado: ${(irpfEst * 100).toFixed(1)}%`;
-        resultadoDiv.appendChild(textoIRPF);
-      }
-
+      // Texto explicativo personalizado
       const explicacion = document.createElement('p');
       explicacion.className = 'explicacion';
 
-      if (indice >= 80) {
-        explicacion.textContent = "Tu situación fiscal es favorable: pagas pocos impuestos directos, tienes vivienda propia y controlas tus finanzas, lo que te otorga mayor libertad financiera.";
-      } else if (indice >= 40) {
-        explicacion.textContent = "Tu situación fiscal puede mejorar: algunas cargas fiscales o financieras te limitan, pero con cambios podrías avanzar hacia más libertad.";
-      } else {
-        explicacion.textContent = "Tu situación fiscal es complicada: pagas impuestos directos, tienes cargas o deudas y quizá no tienes vivienda propia, lo que limita tu libertad financiera considerablemente.";
-      }
-      resultadoDiv.appendChild(explicacion);
-
+      // Recomendaciones
       const recomendaciones = document.createElement('div');
-      recomendaciones.style.marginTop = '20px';
-      recomendaciones.style.textAlign = 'left';
-      recomendaciones.style.background = '#eef6ff';
-      recomendaciones.style.padding = '15px';
-      recomendaciones.style.borderRadius = '6px';
-      recomendaciones.style.color = '#336699';
+      recomendaciones.className = 'explicacion';
 
-      let textoRec = "<strong>Recomendaciones básicas:</strong><ul>";
-      if (indice < 40) {
-        textoRec += "<li>Revisa tu carga fiscal y busca asesoría para optimizar impuestos.</li>";
-        textoRec += "<li>Evalúa la posibilidad de reducir deudas y mejorar tu vivienda.</li>";
-      } else if (indice < 80) {
-        textoRec += "<li>Considera opciones para disminuir impuestos y aumentar ahorros.</li>";
-        textoRec += "<li>Valora invertir en vivienda propia si estás alquilando.</li>";
+      // Construir explicación y recomendaciones
+      const partesExplicacion = [];
+      const recomendacionesList = [];
+
+      // IRPF
+      if (impuestoRenta === "1") {
+        partesExplicacion.push("Pagas impuestos directos que afectan tu ingreso disponible.");
+        recomendacionesList.push("Explora posibles deducciones o beneficios fiscales para reducir tu carga impositiva.");
+      } else if (impuestoRenta === "0") {
+        partesExplicacion.push("Actualmente no pagas IRPF, verifica que tu situación sea correcta y aprovecha esta ventaja.");
+        recomendacionesList.push("Revisa regularmente tu situación fiscal para asegurarte de no perder oportunidades.");
       } else {
-        textoRec += "<li>Mantén tu situación fiscal y busca optimizar aún más tus finanzas.</li>";
-        textoRec += "<li>Explora inversiones que te ayuden a aumentar tu libertad financiera.</li>";
+        partesExplicacion.push("No has indicado si pagas IRPF, lo que limita un análisis completo.");
+      }
+
+      // Vivienda
+      if (vivienda === "propia") {
+        partesExplicacion.push("Vives en tu vivienda propia, lo que aporta estabilidad y seguridad financiera.");
+      } else if (vivienda === "alquilada") {
+        partesExplicacion.push("Vives en vivienda alquilada, lo que puede representar un gasto constante.");
+        recomendacionesList.push("Considera evaluar la compra de vivienda propia para aumentar tu patrimonio.");
+      } else {
+        partesExplicacion.push("No has especificado tu situación de vivienda.");
+      }
+
+      // Hipoteca
+      if (hipoteca === "1") {
+        if (pagoHipoteca > 0 && ingresos > 0) {
+          const ratio = pagoHipoteca / ingresos;
+          if (ratio > 0.5) {
+            partesExplicacion.push("Tu pago mensual de hipoteca es alto respecto a tus ingresos.");
+            recomendacionesList.push("Evalúa refinanciar tu hipoteca para reducir pagos mensuales.");
+          } else if (ratio > 0.3) {
+            partesExplicacion.push("Tu pago mensual de hipoteca representa una parte significativa de tus ingresos.");
+            recomendacionesList.push("Busca optimizar las condiciones de tu hipoteca.");
+          } else {
+            partesExplicacion.push("Tu pago mensual de hipoteca es controlado en relación con tus ingresos.");
+          }
+        } else {
+          partesExplicacion.push("Tienes hipoteca pero no especificaste el pago mensual.");
+        }
+      } else if (hipoteca === "0") {
+        partesExplicacion.push("No tienes hipoteca, lo que puede darte mayor flexibilidad financiera.");
+      } else {
+        partesExplicacion.push("No has indicado si tienes hipoteca.");
+      }
+
+      // Cargas familiares
+      if (cargasFamiliares === "1") {
+        partesExplicacion.push("Tienes cargas familiares que pueden influir en tu situación fiscal.");
+        recomendacionesList.push("Aprovecha las deducciones y beneficios fiscales relacionados con cargas familiares.");
+      } else if (cargasFamiliares === "0") {
+        partesExplicacion.push("No tienes cargas familiares, lo que simplifica tu situación fiscal.");
+      } else {
+        partesExplicacion.push("No has indicado si tienes cargas familiares.");
+      }
+
+      // Autónomo
+      if (autonomo === "1") {
+        partesExplicacion.push("Eres autónomo, lo que implica responsabilidades fiscales específicas.");
+        recomendacionesList.push("Considera asesoría para optimizar tus impuestos como autónomo.");
+      } else if (autonomo === "0") {
+        partesExplicacion.push("No eres autónomo, lo que puede simplificar tu gestión fiscal.");
+      } else {
+        partesExplicacion.push("No has indicado si eres autónomo.");
+      }
+
+      // Deudas
+      if (deudas === "1") {
+        partesExplicacion.push("Actualmente tienes deudas activas que afectan tu libertad financiera.");
+        recomendacionesList.push("Busca reducir o refinanciar tus deudas para mejorar tu salud financiera.");
+      } else if (deudas === "0") {
+        partesExplicacion.push("No tienes deudas activas, lo que fortalece tu libertad financiera.");
+      } else {
+        partesExplicacion.push("No has indicado si tienes deudas activas.");
+      }
+
+      // Ahorros
+      if (ahorros === "1") {
+        partesExplicacion.push("Cuentas con ahorros o inversiones, lo que mejora tu estabilidad financiera.");
+        recomendacionesList.push("Mantén y diversifica tus ahorros para aumentar tu libertad financiera.");
+      } else if (ahorros === "0") {
+        partesExplicacion.push("No tienes ahorros o inversiones actualmente.");
+        recomendacionesList.push("Considera iniciar un plan de ahorro o inversión para tu futuro.");
+      } else {
+        partesExplicacion.push("No has indicado si tienes ahorros o inversiones.");
+      }
+
+      explicacion.textContent = partesExplicacion.join(" ");
+
+      // Evitar recomendaciones repetidas
+      const recomendacionesUnicas = [...new Set(recomendacionesList)];
+
+      let textoRec = "<strong>Recomendaciones específicas:</strong><ul>";
+      if (recomendacionesUnicas.length === 0) {
+        textoRec += "<li>Tu situación parece equilibrada. Mantén tus buenas prácticas financieras.</li>";
+      } else {
+        recomendacionesUnicas.forEach(rec => {
+          textoRec += `<li>${rec}</li>`;
+        });
       }
       textoRec += "</ul>";
+
       recomendaciones.innerHTML = textoRec;
+
+      resultadoDiv.appendChild(explicacion);
       resultadoDiv.appendChild(recomendaciones);
     });
   </script>
