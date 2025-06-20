@@ -40,6 +40,7 @@
       font-size: 18px;
       border-radius: 5px;
       cursor: pointer;
+      transition: background-color 0.3s ease;
     }
     button:hover {
       background-color: #1f5f85;
@@ -94,19 +95,6 @@
       margin-top: 15px;
       font-style: italic;
       color: #555;
-      text-align: left;
-    }
-    .recomendaciones {
-      margin-top: 20px;
-      text-align: left;
-      background: #eef6ff;
-      padding: 15px;
-      border-radius: 6px;
-      color: #336699;
-    }
-    .recomendaciones ul {
-      padding-left: 20px;
-      margin: 0;
     }
   </style>
 </head>
@@ -192,7 +180,6 @@
     // Función para estimar porcentaje IRPF según ingreso bruto estimado y cargas familiares
     function estimarIRPF(bruto, cargasFamiliares) {
       let tasa = 0;
-
       if (bruto <= 12000) tasa = 0.09;
       else if (bruto <= 20000) tasa = 0.15;
       else if (bruto <= 35000) tasa = 0.22;
@@ -225,7 +212,7 @@
 
       let indice = 50;
 
-      // Ajustes para cálculo índice (se pueden seguir afinando)
+      // Ajustes en base a las respuestas
       if (impuestoRenta === "1") indice -= 25;
       else if (impuestoRenta === "0") indice += 10;
 
@@ -257,7 +244,7 @@
         else indice += 5;
       }
 
-      // Estimación del IRPF
+      // Estimación IRPF
       let irpfEst = null;
       if (ingresos !== null && !isNaN(ingresos) && cargasFamiliares !== "") {
         let tasaAprox = 0.20;
@@ -288,4 +275,64 @@
       etiqIzq.innerHTML = '⛓️ Camino de Servidumbre';
 
       const etiqDer = document.createElement('div');
-      etiqDer.className =
+      etiqDer.className = 'barra-etiq right';
+      etiqDer.innerHTML = '🕊️ Libertad';
+
+      barraContenedor.appendChild(etiqIzq);
+      barraContenedor.appendChild(etiqDer);
+
+      resultadoDiv.appendChild(barraContenedor);
+
+      const textoResultado = document.createElement('p');
+      textoResultado.textContent = `Tu Índice de Libertad Fiscal es: ${indice.toFixed(1)} / 100`;
+      textoResultado.style.fontWeight = 'bold';
+      textoResultado.style.marginTop = '10px';
+      resultadoDiv.appendChild(textoResultado);
+
+      if (irpfEst !== null) {
+        const textoIRPF = document.createElement('p');
+        textoIRPF.style.marginTop = '10px';
+        textoIRPF.style.fontStyle = 'italic';
+        textoIRPF.style.color = '#555';
+        textoIRPF.textContent = `Estimación de IRPF anual aproximado: ${(irpfEst * 100).toFixed(1)}%`;
+        resultadoDiv.appendChild(textoIRPF);
+      }
+
+      const explicacion = document.createElement('p');
+      explicacion.className = 'explicacion';
+
+      if (indice >= 80) {
+        explicacion.textContent = "Tu situación fiscal es favorable: pagas pocos impuestos directos, tienes vivienda propia y controlas tus finanzas, lo que te otorga mayor libertad financiera.";
+      } else if (indice >= 40) {
+        explicacion.textContent = "Tu situación fiscal puede mejorar: algunas cargas fiscales o financieras te limitan, pero con cambios podrías avanzar hacia más libertad.";
+      } else {
+        explicacion.textContent = "Tu situación fiscal es complicada: pagas impuestos directos, tienes cargas o deudas y quizá no tienes vivienda propia, lo que limita tu libertad financiera considerablemente.";
+      }
+      resultadoDiv.appendChild(explicacion);
+
+      const recomendaciones = document.createElement('div');
+      recomendaciones.style.marginTop = '20px';
+      recomendaciones.style.textAlign = 'left';
+      recomendaciones.style.background = '#eef6ff';
+      recomendaciones.style.padding = '15px';
+      recomendaciones.style.borderRadius = '6px';
+      recomendaciones.style.color = '#336699';
+
+      let textoRec = "<strong>Recomendaciones básicas:</strong><ul>";
+      if (indice < 40) {
+        textoRec += "<li>Revisa tu carga fiscal y busca asesoría para optimizar impuestos.</li>";
+        textoRec += "<li>Evalúa la posibilidad de reducir deudas y mejorar tu vivienda.</li>";
+      } else if (indice < 80) {
+        textoRec += "<li>Considera opciones para disminuir impuestos y aumentar ahorros.</li>";
+        textoRec += "<li>Valora invertir en vivienda propia si estás alquilando.</li>";
+      } else {
+        textoRec += "<li>Mantén tu situación fiscal y busca optimizar aún más tus finanzas.</li>";
+        textoRec += "<li>Explora inversiones que te ayuden a aumentar tu libertad financiera.</li>";
+      }
+      textoRec += "</ul>";
+      recomendaciones.innerHTML = textoRec;
+      resultadoDiv.appendChild(recomendaciones);
+    });
+  </script>
+</body>
+</html>
